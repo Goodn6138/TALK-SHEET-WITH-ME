@@ -1,1 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    textarea, input { width: 100%; margin: 5px 0; }
+    #recordingIndicator { color: red; font-weight: bold; display: none; }
+  </style>
+</head>
+<body>
+  <h2>SHEET TALK 😊</h2>
+  <textarea id="textInput" placeholder="Type or speak your command..."></textarea>
+  <button onclick="startListening()">🎙 Speak</button>
+  <button onclick="sendToServer()">📤 Send</button>
+  <div id="recordingIndicator">🔴 Listening...</div>
+  <div id="status"></div>
+
+  <script>
+    let recognition;
+    function startListening() {
+      const indicator = document.getElementById("recordingIndicator");
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.start();
+        indicator.style.display = "block";
+
+        recognition.onresult = function(event) {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById("textInput").value = transcript;
+        };
+        recognition.onend = () => { indicator.style.display = "none"; };
+      } catch (err) {
+        alert("Speech recognition not supported in this browser.");
+      }
+    }
+
+    async function sendToServer() {
+      const text = document.getElementById("textInput").value.trim();
+      if (!text) return alert("Please provide a command first.");
+
+      document.getElementById("status").innerText = "⏳ Sending to server...";
+
+      try {
+        const response = await fetch("https://your-server.com/parse-command", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: text })
+        });
+
+        const json = await response.json();
+        const script = json.script; // Must be plain executable JS string
+
+        google.script.run
+          .withSuccessHandler(result => {
+            document.getElementById("status").innerText = result;
+          })
+          .withFailureHandler(error => {
+            document.getElementById("status").innerText = "❌ Error: " + error.message;
+          })
+          .executeDynamicScript(script);
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Failed to contact server: " + err;
+      }
+    }
+  </script>
+</body>
+</html>
 
