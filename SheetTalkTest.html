@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    textarea, button {
+      width: 100%;
+      margin: 5px 0;
+      padding: 8px;
+      font-size: 14px;
+    }
+    #recordingIndicator {
+      color: red;
+      font-weight: bold;
+      display: none;
+    }
+    #status {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <h2>SHEET TALK 😊</h2>
+  <textarea id="textInput" placeholder="Type or speak your command..."></textarea>
+  <button onclick="startListening()">🎙 Speak</button>
+  <button onclick="sendToServer()">📤 Send</button>
+  <div id="recordingIndicator">🔴 Listening...</div>
+  <div id="status"></div>
+
+  <script>
+    let recognition;
+
+    function startListening() {
+      const indicator = document.getElementById("recordingIndicator");
+      try {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.lang = 'en-US';
+        recognition.start();
+        indicator.style.display = "block";
+
+        recognition.onresult = function(event) {
+          const transcript = event.results[0][0].transcript;
+          document.getElementById("textInput").value = transcript;
+        };
+
+        recognition.onend = () => {
+          indicator.style.display = "none";
+        };
+      } catch (err) {
+        alert("Speech recognition not supported in this browser.");
+      }
+    }
+
+    async function sendToServer() {
+      const text = document.getElementById("textInput").value.trim();
+      if (!text) {
+        alert("Please provide a command first.");
+        return;
+      }
+
+      document.getElementById("status").innerText = "⏳ Processing...";
+
+      try {
+        // Simulated script: highlights all rows with 'THERMOGUN' in column C
+        const script = `
+          const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+          const values = sheet.getDataRange().getValues();
+          for (let i = 1; i < values.length; i++) {
+            if (values[i][2] && values[i][2].toString().toUpperCase().includes("THERMOGUN")) {
+              sheet.getRange(i + 1, 3).setBackground("#ffff00");
+            }
+          }
+        `;
+
+        google.script.run
+          .withSuccessHandler(result => {
+            document.getElementById("status").innerText = result;
+          })
+          .withFailureHandler(error => {
+            document.getElementById("status").innerText = "❌ Error: " + error.message;
+          })
+          .executeDynamicScript(script);
+      } catch (err) {
+        document.getElementById("status").innerText = "❌ Failed to process: " + err;
+      }
+    }
+  </script>
+</body>
+</html>
