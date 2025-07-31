@@ -20,5 +20,3 @@ function executeDynamicScript(script) {
     return "❌ Error: " + error.message;
   }
 }
-
-
