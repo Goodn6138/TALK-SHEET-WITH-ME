@@ -3,14 +3,9 @@
 <head>
   <base target="_top">
   <style>
-    body { font-family: Arial; padding: 20px; }
-    textarea, input { width: 100%; margin: 5px 0; }
-    button { padding: 10px; margin: 5px; }
+    body { font-family: Arial, sans-serif; padding: 20px; }
+    textarea, button { width: 100%; margin: 5px 0; padding: 8px; }
     #recordingIndicator { color: red; font-weight: bold; display: none; }
-    #status { margin-top: 10px; padding: 10px; border-radius: 5px; }
-    .success { background-color: #d4edda; color: #155724; }
-    .error { background-color: #f8d7da; color: #721c24; }
-    .loading { background-color: #fff3cd; color: #856404; }
   </style>
 </head>
 <body>
@@ -26,7 +21,7 @@
 
   <script>
     let recognition;
-    
+
     function startListening() {
       const indicator = document.getElementById("recordingIndicator");
       try {
@@ -44,16 +39,9 @@
           document.getElementById("textInput").value = transcript;
           indicator.style.display = "none";
         };
-        
-        recognition.onend = () => { 
-          indicator.style.display = "none"; 
-        };
-        
-        recognition.onerror = (event) => {
+        recognition.onend = () => {
           indicator.style.display = "none";
-          updateStatus("Speech recognition error: " + event.error, "error");
         };
-        
       } catch (err) {
         indicator.style.display = "none";
         alert("Speech recognition not supported in this browser.");
@@ -100,24 +88,17 @@
         }
 
         const json = await response.json();
-        
-        if (json.status === "success" && json.script) {
-          updateStatus("🔄 Executing script in spreadsheet...", "loading");
-          
-          // Execute the script
-          google.script.run
-            .withSuccessHandler(result => {
-              updateStatus(`✅ ${result}`, "success");
-            })
-            .withFailureHandler(error => {
-              updateStatus(`❌ Execution Error: ${error.message}`, "error");
-            })
-            .executeDynamicScript(json.script);
-            
-        } else {
-          updateStatus(`❌ Server Error: ${json.error || 'Unknown error'}`, "error");
-        }
-        
+        const script = json.script;
+
+        google.script.run
+          .withSuccessHandler(result => {
+            document.getElementById("status").innerText = result;
+          })
+          .withFailureHandler(error => {
+            document.getElementById("status").innerText = "❌ Error: " + error.message;
+          })
+          .executeDynamicScript(script);
+
       } catch (err) {
         updateStatus(`❌ Failed to contact server: ${err.message}`, "error");
         console.error("Fetch error:", err);
