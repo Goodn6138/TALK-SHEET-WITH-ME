@@ -1,0 +1,39 @@
+# Virtual environment
+env/
+myvenv/
+
+# Environment variables
+.env
+
+# Python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# IDE and editor files
+.idea/           # PyCharm
+.vscode/         # VS Code
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store        # macOS
+Thumbs.db        # Windows
+
+# Dependency lock files (if not using a specific version)
+Pipfile.lock     # If using Pipenv
+poetry.lock      # If using Poetry
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Miscellaneous
+*.log
