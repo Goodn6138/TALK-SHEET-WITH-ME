@@ -6,14 +6,16 @@
     body { font-family: Arial, sans-serif; padding: 20px; }
     textarea, button { width: 100%; margin: 5px 0; padding: 8px; }
     #recordingIndicator { color: red; font-weight: bold; display: none; }
-    #status { margin-top: 10px; }
   </style>
 </head>
 <body>
   <h2>SHEET TALK 😊</h2>
-  <textarea id="textInput" placeholder="Type or speak your command..."></textarea>
+  <textarea id="textInput" placeholder="Type or speak your command... (e.g., 'Sum all values in column A', 'Create a chart from data in A1:B10')" rows="3"></textarea>
+  <br>
   <button onclick="startListening()">🎙 Speak</button>
-  <button onclick="sendToServer()">📤 Send</button>
+  <button onclick="sendToServer()">📤 Send Command</button>
+  <button onclick="clearInput()">🗑 Clear</button>
+  
   <div id="recordingIndicator">🔴 Listening...</div>
   <div id="status"></div>
 
@@ -26,33 +28,64 @@
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         recognition = new SpeechRecognition();
         recognition.lang = 'en-US';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        
         recognition.start();
         indicator.style.display = "block";
 
         recognition.onresult = function(event) {
           const transcript = event.results[0][0].transcript;
           document.getElementById("textInput").value = transcript;
+          indicator.style.display = "none";
         };
         recognition.onend = () => {
           indicator.style.display = "none";
         };
       } catch (err) {
+        indicator.style.display = "none";
         alert("Speech recognition not supported in this browser.");
       }
     }
 
+    function clearInput() {
+      document.getElementById("textInput").value = "";
+      document.getElementById("status").innerHTML = "";
+    }
+
+    function updateStatus(message, type = "loading") {
+      const statusDiv = document.getElementById("status");
+      statusDiv.innerHTML = message;
+      statusDiv.className = type;
+    }
+
     async function sendToServer() {
       const text = document.getElementById("textInput").value.trim();
-      if (!text) return alert("Please provide a command first.");
+      if (!text) {
+        updateStatus("Please provide a command first.", "error");
+        return;
+      }
 
-      document.getElementById("status").innerText = "⏳ Sending to server...";
+      updateStatus("⏳ Processing your command...", "loading");
 
       try {
-        const response = await fetch("https://your-server.com/parse-command", {
+        
+        const SERVER_URL = "https://your-server.onrender.com"; // Update this!
+        
+        const response = await fetch(`${SERVER_URL}/parse-command`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: text })
+          headers: { 
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ 
+            input: text,
+            context: "Google Sheets spreadsheet operation"
+          })
         });
+
+        if (!response.ok) {
+          throw new Error(`Server error: ${response.status}`);
+        }
 
         const json = await response.json();
         const script = json.script;
@@ -67,9 +100,18 @@
           .executeDynamicScript(script);
 
       } catch (err) {
-        document.getElementById("status").innerText = "❌ Failed to contact server: " + err;
+        updateStatus(`❌ Failed to contact server: ${err.message}`, "error");
+        console.error("Fetch error:", err);
       }
     }
+
+    // Allow Enter key to send command
+    document.getElementById("textInput").addEventListener("keypress", function(event) {
+      if (event.key === "Enter" && !event.shiftKey) {
+        event.preventDefault();
+        sendToServer();
+      }
+    });
   </script>
 </body>
 </html>
