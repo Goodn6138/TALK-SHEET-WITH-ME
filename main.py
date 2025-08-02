@@ -26,6 +26,7 @@ app.add_middleware(
         "https://script.google.com",
         "https://script.googleusercontent.com",
         "https://docs.google.com",
+        "https://*.google.com",
         "https://*.googleusercontent.com",
         "http://localhost:3000",
         "http://127.0.0.1:3000",
