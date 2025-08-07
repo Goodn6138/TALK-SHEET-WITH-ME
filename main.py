@@ -31,6 +31,7 @@
 #         "http://localhost:3000",
 #         "http://127.0.0.1:3000",
 #         "http://localhost:8080",
+#          "http://0.0.0.0:8000",
 #         "null",
 #     ],
 #     allow_credentials=False,
@@ -306,6 +307,8 @@ app.add_middleware(
         "http://localhost:3000",
         "http://127.0.0.1:3000",
         "http://localhost:8080",
+        "http://0.0.0.0:8000",
+        "https://api.cohere.ai/v1/chat",
         "null",
     ],
     allow_credentials=False,
@@ -433,7 +436,7 @@ async def receive_data(request: Request):
 @app.options("/parse-command")
 async def parse_command_options():
     """Handle CORS preflight requests for /parse-command"""
-    return {"message": "CORS preflight OK"}, 200
+    return JSONResponse(content={"message": "CORS preflight OK"}, status_code=200)
 
 @app.post("/parse-command", response_model=CommandResponse)
 async def parse_command(request: CommandRequest):
