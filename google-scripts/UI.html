@@ -1,1 +1,19 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <base target="_top">
+  </head>
+  <body>
+    <button onclick="ping()">Ping Server</button>
+    <div id="output"></div>
+
+    <script>
+      function ping() {
+        google.script.run.withSuccessHandler(function(response) {
+          document.getElementById("output").innerText = response;
+        }).pingBackend();
+      }
+    </script>
+  </body>
+</html>
 
