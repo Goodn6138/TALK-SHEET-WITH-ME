@@ -375,19 +375,24 @@ def create_cohere_prompt(user_command: str, context: str = None) -> str:
         raise ValueError("User command cannot be empty")
     
     base_prompt = f"""
-You are an expert in Google Apps Script for Google Sheets. Convert the following natural language command into valid Google Apps Script code that can be executed in a Google Sheets environment. Return only the executable JavaScript code, without explanations, comments, or markdown formatting (e.g., no ```javascript
+You are an expert in Google Apps Script for Google Sheets. Convert the following natural language command into valid Google Apps Script code that can be executed in a Google Sheets environment. The code must do two things:
 
-Command: "{command}"
+Execute the described action in Google Sheets.
 
-Context: {context if context else "Working with a Google Sheets spreadsheet"}
+Display the results or confirmation in an open view window using SpreadsheetApp.getUi().alert().
+
+Return only the executable JavaScript code, without explanations, comments, or markdown formatting (e.g., no ```javascript).
 
 Examples:
+
 Command: "Sort the first column in ascending order"
-Code: SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange('A:A').sort(1);
+Code: const sheet = SpreadsheetApp.getActiveSheet(); sheet.getRange('A:A').sort(1); SpreadsheetApp.getUi().alert('First column sorted in ascending order');
 
 Command: "Sum all values in column A"
-Code: const sheet = SpreadsheetApp.getActiveSheet(); const rangeA = sheet.getRange('A:A'); const values = rangeA.getValues().flat(); const sum = values.reduce((sum, val) => sum + (val || 0), 0); sheet.getRange('B1').setValue(sum);
-"""
+Code: const ui = SpreadsheetApp.getUi(); const sheet = SpreadsheetApp.getActiveSheet(); const rangeA = sheet.getRange('A:A'); const values = rangeA.getValues().flat(); const sum = values.reduce((sum, val) => sum + (val || 0), 0); sheet.getRange('B1').setValue(sum); ui.alert('The sum of column A is: ' + sum);
+
+Command: "Highlight duplicates in column B"
+Code: const ui = SpreadsheetApp.getUi(); const sheet = SpreadsheetApp.getActiveSheet(); const rangeB = sheet.getRange('B:B'); const values = rangeB.getValues().flat(); const seen = {}; let count = 0; values.forEach((val, i) => { if(val && seen[val]) { sheet.getRange(i+1, 2).setBackground('yellow'); count++; } else { seen[val] = true; } }); ui.alert(count + ' duplicate(s) found and highlighted in column B');"""
     
     return base_prompt.strip()
 
