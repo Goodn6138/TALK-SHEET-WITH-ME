@@ -499,14 +499,15 @@ try {
 """
     else:
         return f"""
-try {{
-  const sheet = SpreadsheetApp.getActiveSheet();
-  sheet.getRange('A1').setValue('Command received: {command}');
-  return 'Command processed (fallback mode)';
-}} catch (error) {{
-  return 'Error: ' + error.message;
-}}
+    try {{
+      const sheet = SpreadsheetApp.getActiveSheet();
+      sheet.getRange('A1').setValue('Command received: {command}');
+      return 'Command processed (fallback mode)';
+    }} catch (error) {{
+      return 'Error: ' + error.message;
+    }}
 """
+
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
