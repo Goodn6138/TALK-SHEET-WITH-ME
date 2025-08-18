@@ -393,7 +393,7 @@ Code: const ui = SpreadsheetApp.getUi(); const sheet = SpreadsheetApp.getActiveS
 
 Command: "Highlight duplicates in column B"
 Code: const ui = SpreadsheetApp.getUi(); const sheet = SpreadsheetApp.getActiveSheet(); const rangeB = sheet.getRange('B:B'); const values = rangeB.getValues().flat(); const seen = {}; let count = 0; values.forEach((val, i) => { if(val && seen[val]) { sheet.getRange(i+1, 2).setBackground('yellow'); count++; } else { seen[val] = true; } }); ui.alert(count + ' duplicate(s) found and highlighted in column B');
-""""                                                                                                                                                                                                                                                                                       
+"""                                                                                                                                                                                                                                                                                       
     
     return base_prompt.strip()
 
