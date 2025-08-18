@@ -370,36 +370,35 @@ async def call_cohere_api(prompt: str) -> str:
 
 def create_cohere_prompt(user_command: str, context: str = None) -> str:
     """Create a well-structured prompt for Cohere API"""
+    
     command = user_command.strip()
     if not command:
         raise ValueError("User command cannot be empty")
     
     base_prompt = f"""
-You are an expert in Google Apps Script for Google Sheets. Convert the following natural language command into valid Google Apps Script code that can be executed in a Google Sheets environment. The code must do two things:
+You are an expert in Google Apps Script for Google Sheets. Convert the following natural language command into valid Google Apps Script code that can be executed in a Google Sheets environment. Return only the executable JavaScript code, without explanations, comments, or markdown formatting (e.g., no ```javascript or ```). Ensure the code is safe, functional, and uses SpreadsheetApp APIs. For summation commands, return code that calculates and returns the result.
 
-Execute the described action in Google Sheets.
+Command: "{command}"
 
-Display the results or confirmation in an open view window using SpreadsheetApp.getUi().alert().
-
-Return only the executable JavaScript code, without explanations, comments, or markdown formatting (e.g., no ```javascript).
+Context: {context if context else "Working with a Google Sheets spreadsheet"}
 
 Examples:
-
 Command: "Sort the first column in ascending order"
-Code: const sheet = SpreadsheetApp.getActiveSheet(); sheet.getRange('A:A').sort(1); SpreadsheetApp.getUi().alert('First column sorted in ascending order');
+Code: SpreadsheetApp.getActiveSpreadsheet().getActiveSheet().getRange('A:A').sort(1);
 
 Command: "Sum all values in column A"
-Code: const ui = SpreadsheetApp.getUi(); const sheet = SpreadsheetApp.getActiveSheet(); const rangeA = sheet.getRange('A:A'); const values = rangeA.getValues().flat(); const sum = values.reduce((sum, val) => sum + (val || 0), 0); sheet.getRange('B1').setValue(sum); ui.alert('The sum of column A is: ' + sum);
-
-Command: "Highlight duplicates in column B"
-Code: const ui = SpreadsheetApp.getUi(); const sheet = SpreadsheetApp.getActiveSheet(); const rangeB = sheet.getRange('B:B'); const values = rangeB.getValues().flat(); const seen = {}; let count = 0; values.forEach((val, i) => { if(val && seen[val]) { sheet.getRange(i+1, 2).setBackground('yellow'); count++; } else { seen[val] = true; } }); ui.alert(count + ' duplicate(s) found and highlighted in column B');
-"""                                                                                                                                                                                                                                                                                       
+Code: SpreadsheetApp.getActiveSheet().getRange('A:A').getValues().reduce((sum, [val]) => sum + (val || 0), 0);
+"""
     
     return base_prompt.strip()
 
 def sanitize_and_validate_script(script: str) -> str:
     """Basic sanitization and validation of generated script"""
+    
+    # Remove any markdown formatting
     script = script.replace("```javascript", "").replace("```", "").strip()
+    
+    # Basic security checks - prevent dangerous operations
     dangerous_patterns = [
         "eval(",
         "Function(",
@@ -412,9 +411,12 @@ def sanitize_and_validate_script(script: str) -> str:
         "DriveApp.getFiles",
         "GmailApp"
     ]
+    
     for pattern in dangerous_patterns:
         if pattern in script:
             logger.warning(f"Potentially dangerous pattern detected: {pattern}")
+            # You might want to either block or sanitize further
+    
     return script
 
 @app.get("/")
@@ -431,24 +433,32 @@ async def receive_data(request: Request):
 
 @app.options("/parse-command")
 async def parse_command_options():
-    """Handle CORS preflight requests for /parse-command"""
-    return JSONResponse(content={"message": "CORS preflight OK"}, status_code=200)
+    """Handle CORS preflight requests"""
+    return {"message": "OK"}
 
 @app.post("/parse-command", response_model=CommandResponse)
 async def parse_command(request: CommandRequest):
     """Main endpoint to process natural language commands"""
+    
     try:
         logger.info(f"Processing command: {request.input}")
         logger.info(f"Request context: {request.context}")
+        
+        # Validate input
         command = request.input.strip() if request.input else ""
         if not command or len(command) < 3:
             logger.warning(f"Invalid command: '{command}'")
             raise HTTPException(status_code=400, detail="Command too short or empty (minimum 3 characters)")
+        
         if len(command) > 500:
             logger.warning(f"Command too long: {len(command)} characters")
             raise HTTPException(status_code=400, detail="Command too long (max 500 characters)")
+        
+        # Create prompt for Cohere
         prompt = create_cohere_prompt(command, request.context)
         logger.info(f"Generated Cohere prompt: {prompt[:200]}...")
+        
+        # Call Cohere API
         if not COHERE_API_KEY:
             logger.info("Using fallback mode (no Cohere API key)")
             script = generate_fallback_script(command)
@@ -456,15 +466,19 @@ async def parse_command(request: CommandRequest):
             logger.info("Calling Cohere API")
             generated_script = await call_cohere_api(prompt)
             script = sanitize_and_validate_script(generated_script)
+        
         if not script:
             logger.error("Failed to generate valid script")
             raise HTTPException(status_code=500, detail="Failed to generate valid script")
+        
         logger.info(f"Successfully generated script: {script[:100]}...")
+        
         return CommandResponse(
             script=script,
             explanation=f"Generated script for: {command}",
             status="success"
         )
+        
     except HTTPException:
         raise
     except Exception as e:
@@ -473,7 +487,9 @@ async def parse_command(request: CommandRequest):
 
 def generate_fallback_script(command: str) -> str:
     """Generate basic scripts for testing when Cohere API is not available"""
+    
     command_lower = command.lower()
+    
     if "sum" in command_lower and "column" in command_lower:
         return """
 try {
@@ -487,6 +503,7 @@ try {
   return 'Error: ' + error.message;
 }
 """
+    
     elif "hello" in command_lower or "test" in command_lower:
         return """
 try {
@@ -497,17 +514,17 @@ try {
   return 'Error: ' + error.message;
 }
 """
+    
     else:
         return f"""
-    try {{
-      const sheet = SpreadsheetApp.getActiveSheet();
-      sheet.getRange('A1').setValue('Command received: {command}');
-      return 'Command processed (fallback mode)';
-    }} catch (error) {{
-      return 'Error: ' + error.message;
-    }}
+try {{
+  const sheet = SpreadsheetApp.getActiveSheet();
+  sheet.getRange('A1').setValue('Command received: {command}');
+  return 'Command processed (fallback mode)';
+}} catch (error) {{
+  return 'Error: ' + error.message;
+}}
 """
-
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -517,10 +534,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 if __name__ == "__main__":
     import uvicorn
-    import os
-    port = int(os.getenv("PORT", 8000))
-    host = os.getenv("HOST", "0.0.0.0")
-    print(f"🚀 Starting Excel AI Backend on http://{host}:{port}")
-    print(f"🩺 Health check: http://{host}:{port}/")
-    print(f"📝 API docs: http://{host}:{port}/docs")
-    uvicorn.run(app, host=host, port=port, reload=True)
+    print("🚀 Starting Excel AI Backend...")
+    print("📊 Access the API at: http://localhost:8000")
+    print("🩺 Health check: http://localhost:8000/")
+    print("📝 API docs: http://localhost:8000/docs")
+    uvicorn.run(app, host="127.0.0.1", port=8000, reload=True)
