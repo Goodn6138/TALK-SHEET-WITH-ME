@@ -296,25 +296,15 @@ logger = logging.getLogger(__name__)
 app = FastAPI(title="Excel AI Backend", version="1.0.0")
 
 # CORS configuration
+# CORS configuration - allow everything
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "https://talk-sheet-with-me-1.onrender.com",
-        "https://script.google.com",
-        "https://script.googleusercontent.com",
-        "https://*.google.com",
-        "https://*.googleusercontent.com",
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "http://localhost:8080",
-        "http://0.0.0.0:8000",
-        "https://api.cohere.ai/v1/chat",
-        "null",
-    ],
-    allow_credentials=False,
+    allow_origins=["*"],
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
 
 # Pydantic models
 class CommandRequest(BaseModel):
